@@ -54,8 +54,6 @@ class Board(object):
         if self.squares[x][y] > 0:
             return False
         
-        legal = False
-
         for d in Board.dirs:
             cursor_x = x + d[0]
             cursor_y = y + d[1]
@@ -83,36 +81,37 @@ class Board(object):
         return legal_moves
 
     def do_move(self, move):
-        x = Board.get_x(move)
-        y = Board.get_y(move)
-        will_flip = []
+        if move != "__":
+            x = Board.get_x(move)
+            y = Board.get_y(move)
+            will_flip = []
 
-        for i in range(8):
-            d = self.dirs[i]
-            cursor_x = x + d[0]
-            cursor_y = y + d[1]
-            
-            if self.get_square(cursor_x, cursor_y) == self.turn ^ 3:
-                while self.get_square(cursor_x, cursor_y) == self.turn ^ 3:
-                    cursor_x += d[0]
-                    cursor_y += d[1]
-                if self.get_square(cursor_x, cursor_y) == self.turn:
-                    rd = self.dirs[(i + 4) % 8]
-                    cursor_x += rd[0]
-                    cursor_y += rd[1]
+            for i in range(8):
+                d = self.dirs[i]
+                cursor_x = x + d[0]
+                cursor_y = y + d[1]
+                
+                if self.get_square(cursor_x, cursor_y) == self.turn ^ 3:
                     while self.get_square(cursor_x, cursor_y) == self.turn ^ 3:
-                        will_flip.append((cursor_x, cursor_y))
+                        cursor_x += d[0]
+                        cursor_y += d[1]
+                    if self.get_square(cursor_x, cursor_y) == self.turn:
+                        rd = self.dirs[(i + 4) % 8]
                         cursor_x += rd[0]
                         cursor_y += rd[1]
+                        while self.get_square(cursor_x, cursor_y) == self.turn ^ 3:
+                            will_flip.append((cursor_x, cursor_y))
+                            cursor_x += rd[0]
+                            cursor_y += rd[1]
 
-        for square in will_flip:
-            self.squares[square[0]][square[1]] = self.turn
-            self.piece_count[self.turn ^ 3] -= 1
+            for square in will_flip:
+                self.squares[square[0]][square[1]] = self.turn
+                self.piece_count[self.turn ^ 3] -= 1
+                self.piece_count[self.turn] += 1
+
+            self.squares[x][y] = self.turn
             self.piece_count[self.turn] += 1
 
-        self.squares[x][y] = self.turn
-
-        self.piece_count[self.turn] += 1
         self.history += move
         self.turn = self.turn ^ 3
         self.legal_moves = self.get_legal_moves()
@@ -174,7 +173,7 @@ class Board(object):
 
     @staticmethod
     def get_move(x, y):
-        return chr(x + 97) + str(y)
+        return chr(x + 97) + str(y + 1)
 
 class Game(object):
 
@@ -227,35 +226,51 @@ class Game(object):
 
     def run_game(self):
         queue = []
+        skipped = 0
         while self.running:
-            Display.show_board(self.boards[self.current_board])
-            
-            if len(queue) == 0:
-                command = Display.get_input()
+            cboard = self.boards[self.current_board]
+            Display.show_board(cboard)
+
+            if len(cboard.legal_moves) == 0:
+                skipped += 1
+                queue.pop(0)
+                if skipped == 2:
+                    running = False
             else:
-                command = queue.pop(0)
-
-            command = command.split()
-
-            if len(command) == 0:
-                Display.show_help()
-
-            elif command[0] == "exit":
-                running = False
-
-            elif command[0] == "ai":
-                queue = ["ai"]
-                cboard = self.boards[self.current_board]
-                self.do_move(cboard.best_move[cboard.turn - 1])
+                skipped = 0
             
-            elif command[0][0] in "abcdefgh" and command[0][1] in "12345678":
-                self.do_move(command[0:2])
+                if len(queue) == 0:
+                    command = Display.get_input()
+                else:
+                    command = queue.pop(0)
+                    if command == "":
+                        command = Display.get_input()
 
-            elif command[0] == "help":
-                Display.show_help()
+                command = command.split()
 
-            else:
-                print("Bad command. Enter 'help' for help or 'exit' to exit.")
+                if len(command) == 0:
+                    Display.show_help()
+
+                elif command[0] == "exit":
+                    running = False
+
+                elif command[0] == "ai":
+                    if len(queue) > 0:
+                        queue.insert(1, "ai")
+                    else:
+                        queue = ["", "ai"]
+                    move = cboard.best_move[cboard.turn - 1]
+                    Display.show_ai_move(move)
+                    self.do_move(move)
+                
+                elif command[0][0] in "abcdefgh" and command[0][1] in "12345678":
+                    self.do_move(command[0][0:2])
+
+                elif command[0] == "help":
+                    Display.show_help()
+
+                else:
+                    print("Bad command. Enter 'help' for help or 'exit' to exit.")
             
 
 class Display(object):
@@ -280,8 +295,13 @@ class Display(object):
         if len(board.get_legal_moves()) == 0:
             line += ", Game over"
         else:
-            line += ", " + Display.graphics[board.turn] + " to play"
+            line += ", " + Display.graphics[board.turn] + " to play...\n"
+            line += "Legal moves: " + str(board.get_legal_moves())
         print(line)
+
+    @staticmethod
+    def show_ai_move(move):
+        print("AI played " + move)
 
     @staticmethod
     def get_input():
@@ -290,7 +310,7 @@ class Display(object):
 
     @staticmethod
     def show_help():
-        print("Help is not yet implemented! Ask Simon or look at the code")
+        print("Help is not yet implemented! Ask Simon or look at the code.")
 
 # Deprecated
 class GameX(object):
