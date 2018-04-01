@@ -208,7 +208,7 @@ class Game(object):
             return board.value
 
         elif board.piece_count[1] + board.piece_count[2] == 64 or board_history[-4:] == "____":
-            return (board.piece_count[self.turn] - board.piece_count[self.turn^3]) * 1000
+            return (board.piece_count[board.turn] - board.piece_count[board.turn^3]) * 1000
 
         else:
             board.value = [None, None]
@@ -257,7 +257,7 @@ class Game(object):
                     Display.show_help()
 
                 elif command[0] == "exit":
-                    running = False
+                    self.running = False
 
                 elif command[0] == "ai":
                     if len(queue) > 0:
