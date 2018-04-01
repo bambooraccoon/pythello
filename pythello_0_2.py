@@ -78,6 +78,8 @@ class Board(object):
             for j in range(self.size):
                 if self.is_legal_move(Board.get_move(i, j)):
                     legal_moves.append(Board.get_move(i, j))
+        if len(legal_moves) == 0:
+            legal_moves = ["__"]
         return legal_moves
 
     def do_move(self, move):
@@ -205,6 +207,9 @@ class Game(object):
             board.value[1] = board.get_instant_value(Board.weights[1])
             return board.value
 
+        elif board.piece_count[1] + board.piece_count[2] == 64 or board_history[-4:] == "____":
+            return (board.piece_count[self.turn] - board.piece_count[self.turn^3]) * 1000
+
         else:
             board.value = [None, None]
             board.best_move = [None, None] 
@@ -235,7 +240,7 @@ class Game(object):
                 skipped += 1
                 queue.pop(0)
                 if skipped == 2:
-                    running = False
+                    self.running = False
             else:
                 skipped = 0
             
