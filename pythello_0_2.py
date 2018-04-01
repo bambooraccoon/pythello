@@ -208,7 +208,13 @@ class Game(object):
             return board.value
 
         elif board.piece_count[1] + board.piece_count[2] == 64 or board_history[-4:] == "____":
-            return (board.piece_count[board.turn] - board.piece_count[board.turn^3]) * 1000
+            if board.piece_count[board.turn] > board.piece_count[board.turn^3]:
+                board.value[0] = 666666
+                board.value[1] = 666666
+            else:
+                board.value[0] = -666666
+                board.value[1] = -666666
+            return board.value
 
         else:
             board.value = [None, None]
